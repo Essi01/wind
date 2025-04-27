@@ -29,13 +29,11 @@ function createWindow() {
             }
         });
 
-        mainWindow.addBrowserView(view);
-        setViewBounds(view);
-
-        view.webContents.loadURL(url);
-
         views.push(view);
         activeViewIndex = views.length - 1;
+        mainWindow.addBrowserView(view);
+        setViewBounds(view);
+        view.webContents.loadURL(url);
         setActiveView();
     });
 
@@ -71,15 +69,42 @@ function createWindow() {
         console.log('Private mode now:', privateMode ? 'ON' : 'OFF');
         configureSession(session.defaultSession, privateMode);
     });
+
+
+    ipcMain.on('duplicate-tab', (event, index) => {
+        if (index >= 0 && index < views.length) {
+            const originalView = views[index];
+            const newView = new BrowserView({
+                webPreferences: {
+                    nodeIntegration: false,
+                    contextIsolation: true,
+                }
+            });
+
+            mainWindow.addBrowserView(newView);
+            setViewBounds(newView);
+
+            const url = originalView.webContents.getURL();
+            newView.webContents.loadURL(url);
+
+            views.push(newView);
+            activeViewIndex = views.length - 1;
+            setActiveView();
+        }
+    });
+
+
 }
 
+
+
 function setViewBounds(view) {
-    const bounds = mainWindow.getBounds();
+    const windowBounds = mainWindow.getBounds();
     view.setBounds({
         x: 0,
-        y: 160,
-        width: bounds.width,
-        height: bounds.height - 160
+        y: 85, // 40px for tabs + 40px for search bar
+        width: windowBounds.width,
+        height: windowBounds.height - 60
     });
     view.setAutoResize({ width: true, height: true });
 }
@@ -102,5 +127,7 @@ app.whenReady().then(() => {
 });
 
 app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit();
+    if (process.platform !== 'darwin') {
+        app.quit();
+    }
 });

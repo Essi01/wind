@@ -1,162 +1,144 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <title>WIND Browser</title>
-    <style>
-        body {
-            background-color: #1e1e1e;
-            color: white;
-            margin: 0;
-            font-family: Arial, sans-serif;
-        }
-        #tab-bar {
-            background-color: #333;
-            padding: 10px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            overflow-x: auto;
-        }
-        #tab-bar button {
-            background-color: #555;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 5px;
-            cursor: pointer;
-            position: relative;
-        }
-        #tab-bar button:hover {
-            background-color: #777;
-        }
-        .tab-active {
-            background-color: #0078d7 !important;
-        }
-        .close-btn {
-            position: absolute;
-            right: 2px;
-            top: 2px;
-            background: red;
-            border: none;
-            border-radius: 50%;
-            width: 14px;
-            height: 14px;
-            color: white;
-            font-size: 10px;
-            line-height: 14px;
-            padding: 0;
-            text-align: center;
-            cursor: pointer;
-        }
-        #search-bar {
-            padding: 10px;
-            background-color: #1e1e1e;
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-        }
-        #search {
-            width: 400px;
-            padding: 10px;
-            font-size: 16px;
-            border-radius: 5px;
-            border: none;
-        }
-        #search-button, #private-toggle {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #0078d7;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-    </style>
+    <link rel="stylesheet" href="startpage.css">
 </head>
+
 <body>
     <div id="tab-bar">
-        <button id="new-tab">+</button>
+        <div id="new-tab">+</div>
     </div>
+
+
     <div id="search-bar">
         <input id="search" type="text" placeholder="Search DuckDuckGo..." />
         <button id="search-button">Search</button>
-        <button id="private-toggle">Toggle Private Mode</button>
+        <button id="private-button">Toggle Private Mode</button>
     </div>
 
-    <script>
-        const input = document.getElementById('search');
-        const searchButton = document.getElementById('search-button');
-        const newTabButton = document.getElementById('new-tab');
-        const privateToggle = document.getElementById('private-toggle');
-        const tabBar = document.getElementById('tab-bar');
+<script>
+    const input = document.getElementById('search');
+    const searchButton = document.getElementById('search-button');
+    const tabBar = document.getElementById('tab-bar');
 
-        let tabCount = 0;
-        let tabs = [];
+    let tabs = [];
 
-        function createTab(url) {
+    function createTabUI(title, index) {
+        const tab = document.createElement('div');
+        tab.className = 'tab';
+        tab.innerText = title || 'New Tab';
+        tab.dataset.index = index;
+        tab.onclick = () => {
+            window.electronAPI.switchTab(index);
+        };
+        tabBar.appendChild(tab);
+        tabs.push(tab);
+    }
+
+    function highlightTab(index) {
+        tabs.forEach(tab => tab.classList.remove('active-tab'));
+        if (tabs[index]) {
+            tabs[index].classList.add('active-tab');
+        }
+    }
+
+    function search() {
+        const query = input.value.trim();
+        if (query !== '') {
+            const url = 'https://duckduckgo.com/?q=' + encodeURIComponent(query);
             window.electronAPI.createTab(url);
-            const tab = document.createElement('button');
-            tab.innerText = 'Tab ' + (tabCount + 1);
-            tab.dataset.index = tabCount;
-
-            const closeBtn = document.createElement('button');
-            closeBtn.innerText = 'x';
-            closeBtn.classList.add('close-btn');
-            closeBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                window.electronAPI.closeTab(parseInt(tab.dataset.index));
-                tab.remove();
-                tabs = tabs.filter(t => t !== tab);
-            });
-
-            tab.addEventListener('click', function() {
-                window.electronAPI.switchTab(parseInt(this.dataset.index));
-            });
-
-            tab.appendChild(closeBtn);
-            tabBar.appendChild(tab);
-            tabs.push(tab);
-            tabCount++;
+            createTabUI('Search: ' + query, tabs.length);
+            input.value = '';
         }
+    }
 
-        function search() {
-            const query = input.value.trim();
-            if (query !== '') {
-                const url = 'https://duckduckgo.com/?q=' + encodeURIComponent(query);
-                createTab(url);
-                input.value = '';
-            }
-        }
-
-        input.addEventListener('keydown', function (event) {
-            if (event.key === 'Enter') {
-                search();
-            }
-        });
-
-        searchButton.addEventListener('click', function () {
+    input.addEventListener('keydown', function (event) {
+        if (event.key === 'Enter') {
             search();
+        }
+    });
+
+    searchButton.addEventListener('click', function () {
+        search();
+    });
+
+    // Listen for highlight event from main process
+    window.electronAPI.onHighlightTab((index) => {
+        highlightTab(index);
+    });
+
+    const newTabButton = document.getElementById('new-tab');
+
+        newTabButton.addEventListener('click', () => {
+            const url = 'https://duckduckgo.com/';
+            window.electronAPI.createTab(url);
+            createTabUI('New Tab', tabs.length);
         });
 
-        newTabButton.addEventListener('click', function () {
-            createTab('https://duckduckgo.com/');
-        });
+    function createTabUI(title, index) {
+            const tab = document.createElement('div');
+            tab.classList.add('tab');
+            tab.innerText = title || 'New Tab';
+            tab.dataset.index = index;
 
-        privateToggle.addEventListener('click', function () {
-            window.electronAPI.togglePrivate();
-        });
+            // Left click -> switch tab
+            tab.addEventListener('click', () => {
+                window.electronAPI.switchTab(parseInt(tab.dataset.index));
+            });
 
-        const { ipcRenderer } = require('electron');
-        ipcRenderer.on('highlight-tab', (event, index) => {
-            tabs.forEach((tab, i) => {
-                if (i === index) {
-                    tab.classList.add('tab-active');
-                } else {
-                    tab.classList.remove('tab-active');
+            // Middle click -> close tab
+            tab.addEventListener('auxclick', (event) => {
+                if (event.button === 1) { // Middle button
+                    window.electronAPI.closeTab(parseInt(tab.dataset.index));
                 }
             });
-        });
-    </script>
+
+            // Right click -> context menu
+            tab.addEventListener('contextmenu', (event) => {
+                event.preventDefault();
+                showTabContextMenu(parseInt(tab.dataset.index));
+            });
+
+            document.getElementById('tab-bar').insertBefore(tab, document.getElementById('new-tab'));
+        }
+
+        // Context Menu for Tabs
+        function showTabContextMenu(index) {
+            const menu = document.createElement('div');
+            menu.style.position = 'absolute';
+            menu.style.top = event.pageY + 'px';
+            menu.style.left = event.pageX + 'px';
+            menu.style.backgroundColor = '#333';
+            menu.style.color = 'white';
+            menu.style.padding = '5px';
+            menu.style.borderRadius = '5px';
+            menu.style.zIndex = 9999;
+            menu.innerHTML = `
+        <div id="close-tab">Close Tab</div>
+        <div id="duplicate-tab">Duplicate Tab</div>
+    `;
+            document.body.appendChild(menu);
+
+            menu.querySelector('#close-tab').addEventListener('click', () => {
+                window.electronAPI.closeTab(index);
+                document.body.removeChild(menu);
+            });
+
+            menu.querySelector('#duplicate-tab').addEventListener('click', () => {
+                window.electronAPI.duplicateTab(index);
+                document.body.removeChild(menu);
+            });
+
+            document.addEventListener('click', () => {
+                if (document.body.contains(menu)) {
+                    document.body.removeChild(menu);
+                }
+            }, { once: true });
+        }
+</script>
 </body>
+
 </html>

@@ -32,3 +32,9 @@ npm start
 - Bookmarks and history are stored as local JSON files.
 - Everything works offline except real web page loading.
 - Easy to extend with features like download manager or adblocker later.
+
+###Extra
+git add .
+git commit -m "Save current changes before cleaning node_modules"
+git filter-branch --force --index-filter "git rm --cached --ignore-unmatch -r node_modules" --prune-empty --tag-name-filter cat -- --all
+git push origin --force
