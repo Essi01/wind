@@ -1,0 +1,11 @@
+{
+  "name": "wind",
+  "version": "1.0.0",
+  "main": "src/browser-ui/main.js",
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^35.2.1"
+  }
+}

@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>Bookmarks - WIND</title>
+    <style>
+        body {
+            background-color: #1e1e1e;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        .bookmark {
+            padding: 10px;
+            margin: 5px 0;
+            background: #333;
+            border-radius: 5px;
+            text-decoration: none;
+            color: white;
+            display: block;
+        }
+
+        .bookmark:hover {
+            background: #555;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Saved Bookmarks</h1>
+    <div id="bookmarks-list"></div>
+
+    <script>
+        async function loadBookmarks() {
+            const bookmarks = await window.electronAPI.loadBookmarks();
+            const list = document.getElementById('bookmarks-list');
+            list.innerHTML = '';
+
+            bookmarks.forEach(url => {
+                const link = document.createElement('a');
+                link.href = '#';
+                link.className = 'bookmark';
+                link.textContent = url;
+                link.onclick = () => {
+                    window.electronAPI.createTab(url);
+                };
+                list.appendChild(link);
+            });
+        }
+
+        loadBookmarks();
+    </script>
+</body>
+
+</html>
